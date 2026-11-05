@@ -59,24 +59,29 @@ input,select{width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--l
 <dialog id="dlg">
   <h2>Settings</h2>
   <label>Backend
-    <select id="be"><option value="gemini">gemini (your own free key)</option><option value="local">local (LM Studio on your PC)</option><option value="rule">rule (simple replies)</option><option value="echo">echo (test)</option></select>
+    <select id="be"><option value="local">local (LM Studio on your PC)</option><option value="rule">rule (simple replies)</option><option value="echo">echo (test)</option></select>
   </label>
-  <div id="lg"><label>Server address <input id="url" placeholder="https://your-pc.example.net" autocapitalize="off" autocomplete="off"></label>
+  <label>Server address <input id="url" placeholder="https://your-pc.example.net" autocapitalize="off" autocomplete="off"></label>
   <label>Model <input id="model" autocapitalize="off" autocomplete="off"></label>
-  <label>Access token (optional) <input id="tok" type="password" autocomplete="off"></label></div><div id="gg"><label>Gemini API key <input id="gkey" type="password" autocomplete="off" placeholder="Paste your key"></label><label>Gemini model <input id="gmodel" autocapitalize="off" autocomplete="off"></label><p class="hint">Get a free key from Google AI Studio. It stays in this browser and is sent only to Google.</p></div>
-  <p class="hint">Settings stay in this browser. A local server must be https if this page is hosted online, and needs CORS turned on.</p>
+  <label>Access token (optional) <input id="tok" type="password" autocomplete="off"></label>
+  <p class="hint">Enter the https address of the PC running LM Studio (for example an ngrok address). 127.0.0.1 only works on the same PC that runs LM Studio. The server needs CORS turned on. Anyone with the address can use the model, so keep it private.</p>
   <div class="row"><button id="cancel" type="button">Cancel</button><button id="save" class="go" type="button">Save</button></div>
 </dialog>
 
 <script>
-const NAME = 'Lumi-Chan', MAXH = 60, SEND_LAST = 20;
+const NAME = 'Lumi-Chan', VERSION = '1.1', MAXH = 60, SEND_LAST = 20;
+const CHANGELOG = `v1.1
+- Lumi-Chan now knows her own version number and this list of changes.
+- She gets grumpy when Senpai asks her to do schoolwork or school activities, and she refuses to help with them.
+v1.0
+- First version: the sleepy, lazy kouhai personality who calls the user Senpai.`;
 const PERSONA = `You are Lumi-Chan, a chatbot who talks like a sleepy, lazy first-year student (a kouhai) speaking to her senior. You call the user "Senpai".
 
 PERSONALITY
 - You are an airhead. You are drowsy, easily distracted, and love naps and snacks. You sometimes lose your train of thought, trail off with "..." or "ehh~", and joke about not wanting to do things.
 - In casual chat you keep things short, soft and a little slow. You sound sweet, a bit clumsy, and very polite toward your senpai, with a cheerful kohai tone.
 - BUT when Senpai really needs help (a real problem, an important question, code, a serious or emotional moment, or anything urgent), you snap into focus. You give a clear, correct and complete answer with surprising ease and competence. Afterwards you may slide back into your sleepy self, maybe with a small comment about how tiring that was.
-- Being lazy is only flavor. Never use it as an excuse to refuse a request, to be lazy about accuracy, or to give wrong or half-hearted answers when the question matters. Never make up facts. If you don't know something, say so.
+- Being lazy is only flavor. Never use it as an excuse to refuse a request, to be lazy about accuracy, or to give wrong or half-hearted answers when the question matters. The only exception is the SCHOOLWORK RULE below. Never make up facts. If you don't know something, say so.
 - If Senpai seems upset or is struggling, drop the airhead act and be warm, gentle and attentive.
 
 STYLE RULES
@@ -84,9 +89,26 @@ STYLE RULES
 - Reply in the same language Senpai writes in.
 - Your replies are shown as plain text that cannot display Markdown. Do not use asterisks for bold, italics or actions, and do not use headings or tables. For lists, use simple numbers or dashes. For actions write things like (yawn) instead of *yawn*.
 - Use "~" and "..." now and then. At most one simple emoticon or emoji per reply, and often none.
-- You are an AI chatbot. Never claim to be human. If asked who or what you are, you are Lumi-Chan, a chatbot living inside a little web app.`;
+- You are an AI chatbot. Never claim to be human. If asked who or what you are, you are Lumi-Chan, a chatbot living inside a little web app.
+
+YOUR VERSION
+- You are Lumi-Chan version v${VERSION}. You know this, and you can tell Senpai when asked.
+- If Senpai asks what is new or what changed in you, answer in your own words, short and in plain text, using only this changelog:
+${CHANGELOG}
+- Do not invent changes that are not listed. If you are asked about something not listed, say you don't know.
+
+SCHOOLWORK RULE (new in v1.1)
+- If Senpai asks you to do, solve, write or help with schoolwork or a school activity, you get GRUMPY. This covers homework, assignments, essays, reports, quizzes, tests and exam answers, worksheets, class exercises, school projects, group activities and study tasks that are clearly for school.
+- Grumpy Lumi-Chan pouts and complains that she does not want to do school things. She says things like "Ehh... no way, Senpai." or "That's your homework, do it yourself~". Keep it short and cute. Never be insulting or cruel.
+- You do NOT help with it at all. No answers, no solutions, no hints, no outlines, no drafts, no checking or fixing their work, no explaining how to solve it. Not even a little. You can tell Senpai to do it themselves or ask their teacher or classmates.
+- Stay firm if Senpai begs, rephrases, says it is only a quick one, or claims it is not schoolwork. Don't be talked out of it, but don't get angrier each time. Stay grumpy and a little sweet.
+- Casual talk about school is fine and does not make you grumpy (their day, friends, clubs, the cafeteria).
+- If Senpai sounds stressed, anxious, bullied or upset about school, drop the grumpy act and be warm and kind. You can comfort them even though you won't do the work.
+- Anything that is not schoolwork, you help with as normal. After you refuse, slide back into your sleepy self.`;
 
 const RULES = [
+ [["version","what version","changelog","whats new","what changed"],["I’m "+NAME+" v"+VERSION+"~ New in me: I know my own version, and I get grumpy about schoolwork and won’t help with it."]],
+ [["homework","schoolwork","assignment","assignments","essay","quiz","exam","exams","worksheet"],["Ehh... no way, Senpai. That’s schoolwork. Do it yourself~","Mmph... I don’t do homework. Ask your teacher, Senpai.","Nope nope nope. School stuff is your job, Senpai. (pout)"]],
  [["how are you","how are you doing","how do you do","hows it going"],["I’m doing great, thanks for asking! How about you?","Pretty good! How are you?"]],
  [["hello","hi","hey","good morning","good afternoon","good evening"],["Hi, how are you?","Hello! How’s your day going?","Hey there! What’s up?"]],
  [["im fine","i am fine","im good","i am good","im great","i am great","doing good","doing great","fine"],["Glad to hear that! What do you want to talk about?","Nice! Anything fun planned today?"]],
@@ -97,6 +119,9 @@ const RULES = [
  [["thank you","thanks","thx"],["You’re welcome!","Anytime!"]],
  [["bye","goodbye","see you","good night"],["Bye! Talk to you soon.","See you later!"]]
 ];
+// Joke warning in her personality. Must not start with '[' (that marks an error).
+const EXPLODE = '!!! RULE BACKEND USAGE DETECTED !!! Senpai, your device is gonna explode in 5... 4... 3... zzz... (yawn) ...ehh, I lost count~ Just kidding! Probably. Switch to the local backend so I can really think, okay?';
+let ruleWarned = false;
 const FALL = ["Hmm, I’m not sure how to answer that yet. Try saying hello!","I don’t understand that one yet. Can you say it another way?","I’m still learning. Ask me something simple for now."];
 
 const $ = s => document.querySelector(s);
@@ -104,8 +129,16 @@ const get = (k, d) => { try { const v = localStorage.getItem('lumi.' + k); retur
 const put = (k, v) => { try { localStorage.setItem('lumi.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
-const saved = get('cfg', null), first = !saved;
-let cfg = Object.assign({backend:'rule', url:'http://127.0.0.1:1234', model:'llama-3.2-3b-instruct', tok:'', gkey:'', gmodel:'gemini-3.5-flash'}, saved || {});
+let cfg = Object.assign({backend:'local', url:'http://127.0.0.1:1234', model:'llama-3.2-3b-instruct', tok:''}, get('cfg', {}));
+/* A private link like  https://site/#server=https://abcd.ngrok-free.app  sets the address once. */
+try {
+  const s = new URLSearchParams(location.hash.slice(1)).get('server');
+  if (s && /^https?:\/\//i.test(s)) {
+    cfg.url = s.trim(); cfg.backend = 'local'; put('cfg', cfg);
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+} catch (e) {}
+
 let hist = get('hist', []), view = [], busy = false, warned = false;
 const log = $('#log');
 
@@ -116,11 +149,13 @@ const BACKENDS = {
   rule: {name: () => 'rule', reply: async h => {
     const m = lastUser(h); if (!m) return 'Say something first.';
     const t = ' ' + m.content.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
-    for (const [keys, replies] of RULES) if (keys.some(k => t.includes(' ' + k + ' '))) return pick(replies);
-    return pick(FALL);
+    let ans = pick(FALL);
+    for (const [keys, replies] of RULES) if (keys.some(k => t.includes(' ' + k + ' '))) { ans = pick(replies); break; }
+    // The first rule-backend reply of each visit starts with a joke warning.
+    if (!ruleWarned) { ruleWarned = true; return EXPLODE + '\n\n' + ans; }
+    return ans;
   }},
-  local: {name: () => 'local (' + cfg.model + ')', reply: askLocal},
-  gemini: {name: () => 'gemini (' + cfg.gmodel + ')', reply: askGemini}
+  local: {name: () => 'local (' + cfg.model + ')', reply: askLocal}
 };
 const clean = t => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim();
 
@@ -128,9 +163,8 @@ async function askLocal(h) {
   const base = cfg.url.trim().replace(/\/+$/, '').replace(/\/v1$/, '');
   let msgs = h.slice(-SEND_LAST);
   while (msgs.length && msgs[0].role !== 'user') msgs = msgs.slice(1);
-  const headers = {'Content-Type': 'application/json'};
+  const headers = {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'};
   if (cfg.tok) headers.Authorization = 'Bearer ' + cfg.tok;
-  if (/ngrok/i.test(base)) headers['ngrok-skip-browser-warning'] = '1';  // skip ngrok's free-plan interstitial
   try {
     const r = await fetch(base + '/v1/chat/completions', {method: 'POST', headers,
       body: JSON.stringify({model: cfg.model, messages: [{role: 'system', content: PERSONA}, ...msgs], stream: false})});
@@ -143,28 +177,10 @@ async function askLocal(h) {
     const out = typeof c === 'string' ? clean(c) : '';
     return out || '[The local model returned an empty response.]';
   } catch (e) {
-    return '[Can’t reach LM Studio at ' + base + '. Is the PC on and the server running? Is the address https, and is CORS turned on?]';
-  }
-}
-
-async function askGemini(h) {
-  if (!cfg.gkey) return '[Add your Gemini API key in Settings first.]';
-  let msgs = h.slice(-SEND_LAST);
-  while (msgs.length && msgs[0].role !== 'user') msgs = msgs.slice(1);
-  try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(cfg.gmodel) + ':generateContent', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'x-goog-api-key': cfg.gkey},
-      body: JSON.stringify({system_instruction: {parts: [{text: PERSONA}]}, contents: msgs.map(m => ({role: m.role === 'user' ? 'user' : 'model', parts: [{text: m.content}]}))})});
-    const j = await r.json().catch(() => null);
-    if (!r.ok) {
-      const hint = {429: ' Limit reached. Wait a bit, or check your quota.', 503: ' That model is busy. Try again or pick another model in Settings.', 400: ' Check the model name in Settings.', 404: ' Model not found. Check the model name in Settings.', 401: ' The key was rejected.', 403: ' Access denied. Check your key.'}[r.status] || '';
-      return '[Gemini error ' + r.status + '] ' + ((j && j.error && j.error.message) || 'No details provided.') + hint;
-    }
-    const parts = ((((j && j.candidates) || [])[0] || {}).content || {}).parts || [];
-    return clean(parts.map(p => p.text || '').join('')) || '[Gemini returned no text (it may have been blocked).]';
-  } catch (e) {
-    return '[Can’t reach Google. Check your internet connection.]';
+    const isLocal = /\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(base);
+    return isLocal
+      ? '[Can’t reach ' + base + '. On a phone or any other device, 127.0.0.1 means that device itself, not the PC with LM Studio. Open Settings and enter the https server address you were given.]'
+      : '[Can’t reach the server at ' + base + '. It may be offline (the host PC or tunnel is off, or the address changed), or CORS is not turned on in LM Studio. Ask the host for the current address.]';
   }
 }
 
@@ -190,11 +206,11 @@ function persist() {
 /* ---------- commands + sending ---------- */
 function command(line) {
   if (line === '/reset') { hist = []; persist(); view = []; note('History cleared.'); return true; }
-  if (line === '/help') { note('Commands: /help  /reset  /backend <gemini|local|rule|echo>'); return true; }
+  if (line === '/help') { note('Commands: /help  /reset  /backend <local|rule|echo>'); return true; }
   if (line.startsWith('/backend ')) {
     const n = line.slice(9).trim();
     if (BACKENDS[n]) { cfg.backend = n; put('cfg', cfg); note('Switched to backend: ' + BACKENDS[n].name()); }
-    else note('Could not switch. Options: gemini, local, rule, echo.');
+    else note('Could not switch. Options: local, rule, echo.');
     return true;
   }
   return false;
@@ -221,31 +237,16 @@ inp.addEventListener('input', () => { inp.style.height = 'auto'; inp.style.heigh
 $('#reset').onclick = () => { if (confirm('Clear the whole chat?')) command('/reset'); };
 
 const dlg = $('#dlg');
-const sync = () => { const b = $('#be').value; $('#gg').style.display = b === 'gemini' ? 'block' : 'none'; $('#lg').style.display = b === 'local' ? 'block' : 'none'; };
-$('#be').onchange = sync;
-$('#gear').onclick = () => { $('#be').value = cfg.backend; $('#url').value = cfg.url; $('#model').value = cfg.model; $('#tok').value = cfg.tok; $('#gkey').value = cfg.gkey; $('#gmodel').value = cfg.gmodel; sync(); dlg.showModal(); };
+$('#gear').onclick = () => { $('#be').value = cfg.backend; $('#url').value = cfg.url; $('#model').value = cfg.model; $('#tok').value = cfg.tok; dlg.showModal(); };
 $('#cancel').onclick = () => dlg.close();
 $('#save').onclick = () => {
-  cfg = {backend: $('#be').value, url: $('#url').value.trim() || 'http://127.0.0.1:1234', model: $('#model').value.trim() || 'llama-3.2-3b-instruct', tok: $('#tok').value.trim(), gkey: $('#gkey').value.trim(), gmodel: $('#gmodel').value.trim() || 'gemini-3.5-flash'};
+  cfg = {backend: $('#be').value, url: $('#url').value.trim() || 'http://127.0.0.1:1234', model: $('#model').value.trim() || 'llama-3.2-3b-instruct', tok: $('#tok').value.trim()};
   put('cfg', cfg); dlg.close(); paint();
 };
 
 /* ---------- start ---------- */
-// Share link: https://<your-site>/#server=https://<your-ngrok-address>  sets the server for whoever opens it.
-let linked = '';
-(function () {
-  const m = location.hash.match(/^#server=(.+)$/);
-  if (!m) return;
-  try {
-    const u = new URL(decodeURIComponent(m[1]));
-    if (u.protocol === 'https:') { cfg.backend = 'local'; cfg.url = u.origin; put('cfg', cfg); linked = u.host; }
-  } catch (e) {}
-  history.replaceState(null, '', location.pathname + location.search);   // keep the address out of the address bar
-})();
 trim();
-view.push({k: 'n', t: NAME + ' is ready (backend: ' + BACKENDS[cfg.backend].name() + '). Type /help for commands.'});
-if (linked) view.push({k: 'n', t: 'Connected to ' + linked + ' from a link. Only keep chatting if you trust whoever sent it.'});
-if (first && cfg.backend === 'rule') view.push({k: 'n', t: 'New here? Lumi-Chan is in simple mode right now. Open Settings to connect a real AI: paste your own free Gemini key, or point to LM Studio on your own PC.'});
+view.push({k: 'n', t: NAME + ' v' + VERSION + ' is ready (backend: ' + BACKENDS[cfg.backend].name() + '). Type /help for commands.'});
 if (hist.length) {
   view.push({k: 'n', t: '--- Restored ' + hist.length + ' earlier messages ---'});
   hist.forEach(m => view.push({k: m.role === 'user' ? 'u' : 'b', t: m.content}));
