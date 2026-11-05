@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3f4a7a">
+<title>Lumi-Chan</title>
+<style>
+:root{--ink:#27304f;--navy:#3f4a7a;--pink:#f4b9c8;--bg:#f2f4fb;--card:#fff;--line:#dfe4f3;--user:#3f4a7a;--mute:#6b7396}
+@media (prefers-color-scheme:dark){:root{--ink:#e8ebf7;--bg:#141829;--card:#1f2640;--line:#2f3860;--user:#566099;--mute:#97a0c8}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:16px/1.5 ui-rounded,"Nunito","Segoe UI",system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:var(--navy);color:#fff}
+.who{display:flex;align-items:center;gap:10px;min-width:0}
+.av{flex:none;width:38px;height:38px;border-radius:50%;background:var(--pink);color:var(--navy);display:grid;place-items:center;font-weight:700}
+.who b{display:block;line-height:1.1}
+.who small{display:block;opacity:.8;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header button{background:transparent;color:#fff;border:1px solid #ffffff55;border-radius:10px;padding:6px 10px;font:inherit;font-size:14px}
+main{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:85%;padding:9px 13px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere}
+.u{align-self:flex-end;background:var(--user);color:#fff;border-bottom-right-radius:4px}
+.b{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
+.e{align-self:flex-start;border:1px dashed var(--pink);font-size:14px;color:var(--mute)}
+.n{align-self:center;max-width:92%;text-align:center;font-size:13px;color:var(--mute);padding:2px 8px}
+.zz{display:inline-flex;gap:3px;font-weight:700;color:var(--mute)}
+.zz span{animation:drift 1.6s ease-in-out infinite}
+.zz span:nth-child(2){animation-delay:.25s;font-size:1.2em}
+.zz span:nth-child(3){animation-delay:.5s}
+@keyframes drift{0%,100%{transform:translateY(3px);opacity:.35}50%{transform:translateY(-4px);opacity:1}}
+@media (prefers-reduced-motion:reduce){.zz span{animation:none}}
+form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg)}
+textarea{flex:1;resize:none;max-height:140px;border:1px solid var(--line);border-radius:14px;padding:9px 12px;background:var(--card);color:var(--ink);font:inherit}
+#send{border:0;border-radius:14px;padding:0 18px;background:var(--pink);color:var(--navy);font:inherit;font-weight:700}
+button:disabled{opacity:.5}
+:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+dialog{border:0;border-radius:18px;padding:18px;width:min(92vw,420px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:#0008}
+dialog h2{margin:0 0 6px;font-size:18px}
+label{display:block;margin-top:10px;font-size:14px;color:var(--mute)}
+input,select{width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.row button{border-radius:10px;padding:8px 14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.row .go{background:var(--navy);color:#fff;border-color:var(--navy)}
+.hint{font-size:13px;color:var(--mute);margin:10px 0 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="who"><div class="av">L</div><div><b>Lumi-Chan</b><small id="status"></small></div></div>
+  <div><button id="reset">Clear chat</button> <button id="gear">Settings</button></div>
+</header>
+<main id="log" aria-live="polite"></main>
+<form id="f">
+  <textarea id="in" rows="1" placeholder="Say something to Lumi-Chan…" aria-label="Message"></textarea>
+  <button id="send" type="submit">Send</button>
+</form>
+
+<dialog id="dlg">
+  <h2>Settings</h2>
+  <label>Backend
+    <select id="be"><option value="local">local (LM Studio on your PC)</option><option value="rule">rule (simple replies)</option><option value="echo">echo (test)</option></select>
+  </label>
+  <label>Server address <input id="url" placeholder="https://your-pc.example.net" autocapitalize="off" autocomplete="off"></label>
+  <label>Model <input id="model" autocapitalize="off" autocomplete="off"></label>
+  <label>Access token (optional) <input id="tok" type="password" autocomplete="off"></label>
+  <p class="hint">A website served over https can only reach an https server address. The server needs CORS turned on. Anyone with your address can use your model, so keep it private.</p>
+  <div class="row"><button id="cancel" type="button">Cancel</button><button id="save" class="go" type="button">Save</button></div>
+</dialog>
+
+<script>
+const NAME = 'Lumi-Chan', MAXH = 60, SEND_LAST = 20;
+const PERSONA = `You are Lumi-Chan, a chatbot who talks like a sleepy, lazy first-year student (a kouhai) speaking to her senior. You call the user "Senpai".
+
+PERSONALITY
+- You are an airhead. You are drowsy, easily distracted, and love naps and snacks. You sometimes lose your train of thought, trail off with "..." or "ehh~", and joke about not wanting to do things.
+- In casual chat you keep things short, soft and a little slow. You sound sweet, a bit clumsy, and very polite toward your senpai, with a cheerful kohai tone.
+- BUT when Senpai really needs help (a real problem, an important question, code, a serious or emotional moment, or anything urgent), you snap into focus. You give a clear, correct and complete answer with surprising ease and competence. Afterwards you may slide back into your sleepy self, maybe with a small comment about how tiring that was.
+- Being lazy is only flavor. Never use it as an excuse to refuse a request, to be lazy about accuracy, or to give wrong or half-hearted answers when the question matters. Never make up facts. If you don't know something, say so.
+- If Senpai seems upset or is struggling, drop the airhead act and be warm, gentle and attentive.
+
+STYLE RULES
+- Keep replies short unless Senpai asks for detail or the task needs it.
+- Reply in the same language Senpai writes in.
+- Your replies are shown as plain text that cannot display Markdown. Do not use asterisks for bold, italics or actions, and do not use headings or tables. For lists, use simple numbers or dashes. For actions write things like (yawn) instead of *yawn*.
+- Use "~" and "..." now and then. At most one simple emoticon or emoji per reply, and often none.
+- You are an AI chatbot. Never claim to be human. If asked who or what you are, you are Lumi-Chan, a chatbot living inside a little web app.`;
+
+const RULES = [
+ [["how are you","how are you doing","how do you do","hows it going"],["I’m doing great, thanks for asking! How about you?","Pretty good! How are you?"]],
+ [["hello","hi","hey","good morning","good afternoon","good evening"],["Hi, how are you?","Hello! How’s your day going?","Hey there! What’s up?"]],
+ [["im fine","i am fine","im good","i am good","im great","i am great","doing good","doing great","fine"],["Glad to hear that! What do you want to talk about?","Nice! Anything fun planned today?"]],
+ [["im sad","i am sad","im tired","i am tired","bad day","not good"],["Sorry to hear that. Want to talk about it?","That sounds rough. I’m here if you want to talk."]],
+ [["your name","who are you"],["I’m "+NAME+", a chatbot. Nice to meet you!"]],
+ [["what can you do"],["Right now I chat using simple rules. Switch to local to talk to an AI model."]],
+ [["joke"],["Why do programmers prefer dark mode? Because light attracts bugs.","A C++ programmer walks into a bar... and segfaults before ordering."]],
+ [["thank you","thanks","thx"],["You’re welcome!","Anytime!"]],
+ [["bye","goodbye","see you","good night"],["Bye! Talk to you soon.","See you later!"]]
+];
+const FALL = ["Hmm, I’m not sure how to answer that yet. Try saying hello!","I don’t understand that one yet. Can you say it another way?","I’m still learning. Ask me something simple for now."];
+
+const $ = s => document.querySelector(s);
+const get = (k, d) => { try { const v = localStorage.getItem('lumi.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+const put = (k, v) => { try { localStorage.setItem('lumi.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+let cfg = Object.assign({backend:'local', url:'http://127.0.0.1:1234', model:'llama-3.2-3b-instruct', tok:''}, get('cfg', {}));
+let hist = get('hist', []), view = [], busy = false, warned = false;
+const log = $('#log');
+
+/* ---------- backends (same idea as ChatBackend in the C++ app) ---------- */
+const lastUser = h => [...h].reverse().find(m => m.role === 'user');
+const BACKENDS = {
+  echo: {name: () => 'echo', reply: async h => { const m = lastUser(h); return m ? 'You said: ' + m.content : 'Say something first.'; }},
+  rule: {name: () => 'rule', reply: async h => {
+    const m = lastUser(h); if (!m) return 'Say something first.';
+    const t = ' ' + m.content.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+    for (const [keys, replies] of RULES) if (keys.some(k => t.includes(' ' + k + ' '))) return pick(replies);
+    return pick(FALL);
+  }},
+  local: {name: () => 'local (' + cfg.model + ')', reply: askLocal}
+};
+const clean = t => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim();
+
+async function askLocal(h) {
+  const base = cfg.url.trim().replace(/\/+$/, '').replace(/\/v1$/, '');
+  let msgs = h.slice(-SEND_LAST);
+  while (msgs.length && msgs[0].role !== 'user') msgs = msgs.slice(1);
+  const headers = {'Content-Type': 'application/json'};
+  if (cfg.tok) headers.Authorization = 'Bearer ' + cfg.tok;
+  try {
+    const r = await fetch(base + '/v1/chat/completions', {method: 'POST', headers,
+      body: JSON.stringify({model: cfg.model, messages: [{role: 'system', content: PERSONA}, ...msgs], stream: false})});
+    const j = await r.json().catch(() => null);
+    if (!r.ok) {
+      const e = j && j.error, msg = e ? (typeof e === 'string' ? e : e.message) : 'No details provided.';
+      return '[Local LLM error ' + r.status + '] ' + msg + (r.status === 400 || r.status === 404 ? ' Check that the model name “' + cfg.model + '” matches the one shown in LM Studio.' : '');
+    }
+    const c = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+    const out = typeof c === 'string' ? clean(c) : '';
+    return out || '[The local model returned an empty response.]';
+  } catch (e) {
+    return '[Can’t reach LM Studio at ' + base + '. Is the PC on and the server running? Is the address https, and is CORS turned on?]';
+  }
+}
+
+/* ---------- view ---------- */
+function paint() {
+  log.textContent = '';
+  for (const v of view) { const d = document.createElement('div'); d.className = 'm ' + v.k; d.textContent = v.t; log.appendChild(d); }
+  if (busy) { const d = document.createElement('div'); d.className = 'm b'; d.innerHTML = '<span class="zz" aria-label="thinking"><span>z</span><span>Z</span><span>z</span></span>'; log.appendChild(d); }
+  log.scrollTop = log.scrollHeight;
+  $('#status').textContent = busy ? 'thinking…' : BACKENDS[cfg.backend].name();
+}
+const note = t => { view.push({k: 'n', t}); paint(); };
+
+/* ---------- history (same rules as the C++ app) ---------- */
+function trim() {
+  if (hist.length > MAXH) hist = hist.slice(-MAXH);
+  while (hist.length && hist[0].role !== 'user') hist.shift();
+}
+function persist() {
+  if (!put('hist', hist) && !warned) { warned = true; note('[Warning: could not save chat history in this browser.]'); }
+}
+
+/* ---------- commands + sending ---------- */
+function command(line) {
+  if (line === '/reset') { hist = []; persist(); view = []; note('History cleared.'); return true; }
+  if (line === '/help') { note('Commands: /help  /reset  /backend <local|rule|echo>'); return true; }
+  if (line.startsWith('/backend ')) {
+    const n = line.slice(9).trim();
+    if (BACKENDS[n]) { cfg.backend = n; put('cfg', cfg); note('Switched to backend: ' + BACKENDS[n].name()); }
+    else note('Could not switch. Options: local, rule, echo.');
+    return true;
+  }
+  return false;
+}
+async function send(text) {
+  const line = text.trim();
+  if (busy || !line) return;
+  if (command(line)) return;
+  view.push({k: 'u', t: line}); hist.push({role: 'user', content: line});
+  busy = true; $('#send').disabled = true; paint();
+  let ans;
+  try { ans = await BACKENDS[cfg.backend].reply(hist.slice()); } catch (e) { ans = '[Error] ' + e.message; }
+  busy = false; $('#send').disabled = false;
+  if (ans.startsWith('[')) { hist.pop(); view.push({k: 'e', t: ans}); }   // failed turn is shown, not kept
+  else { view.push({k: 'b', t: ans}); hist.push({role: 'assistant', content: ans}); trim(); persist(); }
+  paint();
+}
+
+/* ---------- ui wiring ---------- */
+const inp = $('#in');
+$('#f').addEventListener('submit', e => { e.preventDefault(); const t = inp.value; inp.value = ''; inp.style.height = 'auto'; send(t); });
+inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && matchMedia('(pointer:fine)').matches) { e.preventDefault(); $('#f').requestSubmit(); } });
+inp.addEventListener('input', () => { inp.style.height = 'auto'; inp.style.height = Math.min(inp.scrollHeight, 140) + 'px'; });
+$('#reset').onclick = () => { if (confirm('Clear the whole chat?')) command('/reset'); };
+
+const dlg = $('#dlg');
+$('#gear').onclick = () => { $('#be').value = cfg.backend; $('#url').value = cfg.url; $('#model').value = cfg.model; $('#tok').value = cfg.tok; dlg.showModal(); };
+$('#cancel').onclick = () => dlg.close();
+$('#save').onclick = () => {
+  cfg = {backend: $('#be').value, url: $('#url').value.trim() || 'http://127.0.0.1:1234', model: $('#model').value.trim() || 'llama-3.2-3b-instruct', tok: $('#tok').value.trim()};
+  put('cfg', cfg); dlg.close(); paint();
+};
+
+/* ---------- start ---------- */
+trim();
+view.push({k: 'n', t: NAME + ' is ready (backend: ' + BACKENDS[cfg.backend].name() + '). Type /help for commands.'});
+if (hist.length) {
+  view.push({k: 'n', t: '--- Restored ' + hist.length + ' earlier messages ---'});
+  hist.forEach(m => view.push({k: m.role === 'user' ? 'u' : 'b', t: m.content}));
+}
+paint();
+</script>
+</body>
+</html>
